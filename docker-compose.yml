@@ -1,0 +1,49 @@
+services: 
+  n8n: 
+    image: n8nio/n8n:latest 
+    container_name: n8n 
+    restart: unless-stopped 
+    ports: 
+      - "5678:5678" 
+    environment: 
+      - N8N_BASIC_AUTH_ACTIVE=true 
+      - N8N_BASIC_AUTH_USER=${N8N_USER} 
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_PASSWORD} 
+      - N8N_HOST=${N8N_HOST} 
+      - N8N_PORT=5678 
+      - N8N_PROTOCOL=https
+      - WEBHOOK_URL=${WEBHOOK_URL}
+      - GENERIC_TIMEZONE=Europe/Moscow 
+      - TZ=Europe/Moscow  
+    volumes: 
+      - n8n_data:/home/node/.n8n 
+      - ./workflows:/data/workflows 
+      - ./temp:/data/temp 
+    networks: 
+      - video-translation-network 
+    depends_on: 
+      - video-translation
+
+  video-translation:
+    build:
+      context: .
+      dockerfile: Dockerfile.translation
+    container_name: video-translation
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - HUGGINGFACE_API_KEY=${HUGGINGFACE_API_KEY}
+      - HUGGINGFACE_MODEL_URL=${HUGGINGFACE_MODEL_URL}
+      - HUGGINGFACE_TR_MODEL_URL=${HUGGINGFACE_TR_MODEL_URL}
+    volumes:
+      - ./temp:/temp
+    networks:
+      - video-translation-network
+       
+volumes:
+  n8n_data:
+
+networks: 
+  video-translation-network: 
+    driver: bridge

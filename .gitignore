@@ -1,0 +1,48 @@
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Temporary files
+temp/
+*.tmp
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+
+# Docker
+.dockerignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# n8n
+.n8n/
+
+# Video files (для тестирования)
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.wav
+*.srt
+
+# Reports (если не нужно коммитить)
+# report.pdf
+

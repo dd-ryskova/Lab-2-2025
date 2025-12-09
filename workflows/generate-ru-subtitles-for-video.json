@@ -1,0 +1,602 @@
+{
+  "name": "generate-ru-subtitles-for-video",
+  "nodes": [
+    {
+      "parameters": {
+        "resource": "file",
+        "fileId": "={{ $('Get Message').item.json.message.video.file_id }}",
+        "additionalFields": {
+          "mimeType": "=video/mp4"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        512,
+        -112
+      ],
+      "id": "67c1a993-faed-4606-b7e0-ab304ae4c445",
+      "name": "Get a file",
+      "webhookId": "ef364534-e9d1-4bfd-ac3c-bff4b35e18fa",
+      "alwaysOutputData": false,
+      "credentials": {
+        "telegramApi": {
+          "id": "3NIbZkHiVJTZ1xJl",
+          "name": "Telegram account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Get Message').item.json.message.text }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        512,
+        112
+      ],
+      "id": "e7944a30-4341-4cbf-8f5f-b4fbd538e632",
+      "name": "Download File",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "9855b52d-a8da-460c-97fe-9432703b4156",
+      "name": "Get Message",
+      "webhookId": "71339410-0340-441c-9e98-96f0a9a7b3c3",
+      "credentials": {
+        "telegramApi": {
+          "id": "3NIbZkHiVJTZ1xJl",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Get Message').item.json.message.video }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "object",
+                      "operation": "notEmpty",
+                      "singleValue": true
+                    },
+                    "id": "0d72d2d2-d174-4f0e-96e8-85d452c8a72b"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "file"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "900ae637-5ba6-4911-83b5-2ba3a7fba8ed",
+                    "leftValue": "={{ $('Get Message').item.json.message.text }}",
+                    "rightValue": "http",
+                    "operator": {
+                      "type": "string",
+                      "operation": "startsWith"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "link"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        320,
+        0
+      ],
+      "id": "a5a04c27-db28-4b95-a9bd-31180ade3d8f",
+      "name": "File or Link"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Get Message').item.json.message.chat.id }}",
+        "text": "Ошибка! Пожалуйста, отправьте валидную ссылку на видео или само видео в чат <3",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        688,
+        256
+      ],
+      "id": "43f9193c-996f-4bce-b3a1-2f467240f323",
+      "name": "Send a DownloadError",
+      "webhookId": "a583ad1b-cfd5-4729-8e82-e190eaf49971",
+      "credentials": {
+        "telegramApi": {
+          "id": "3NIbZkHiVJTZ1xJl",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://video-translation:8000/translate",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "srt_file"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "ru_srt_file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1200,
+        80
+      ],
+      "id": "65bddda1-0cd6-4037-9b49-953a991c56b3",
+      "name": "Translate",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://video-translation:8000/burn-subtitles",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "srt_file",
+              "inputDataFieldName": "ru_srt_file"
+            },
+            {
+              "parameterType": "formBinaryData",
+              "name": "video_file",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "result_video_file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1424,
+        64
+      ],
+      "id": "d0c8548a-1798-46cf-8125-d7ae644924c5",
+      "name": "Burn subtitles",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://video-translation:8000/extract-audio",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "srt_file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        960,
+        96
+      ],
+      "id": "6b9168da-3dc3-41b0-b753-c9b7c09e16eb",
+      "name": "Make SRT",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Get Message').item.json.message.chat.id }}",
+        "text": "Непредвиденные технические чоколадки!!! Пожалуйста, попробуйте позднее <3",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1856,
+        480
+      ],
+      "id": "14c24da3-ced3-43be-905e-80a7ab16ef7c",
+      "name": "Send a ServerError",
+      "webhookId": "a583ad1b-cfd5-4729-8e82-e190eaf49971",
+      "credentials": {
+        "telegramApi": {
+          "id": "3NIbZkHiVJTZ1xJl",
+          "name": "Telegram account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "sendVideo",
+        "chatId": "={{ $('Get Message').item.json.message.chat.id }}",
+        "binaryData": true,
+        "binaryPropertyName": "result_video_file",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1664,
+        48
+      ],
+      "id": "3cba9835-fb9b-4a1b-a539-1fc866431bf1",
+      "name": "Send a video",
+      "webhookId": "8757c984-1d3f-4d56-9fe2-28408c596c06",
+      "credentials": {
+        "telegramApi": {
+          "id": "3NIbZkHiVJTZ1xJl",
+          "name": "Telegram account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.message.chat.id }}",
+        "text": "Приветствуем в нашем сервисе по автоматическому созданию субтитров на русском языке! Подождите, ваш запрос обрабатывается <3",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        160,
+        0
+      ],
+      "id": "1db3da34-641e-436d-91c3-7f6aa9b8cf7c",
+      "name": "Send a HelloMessage",
+      "webhookId": "a583ad1b-cfd5-4729-8e82-e190eaf49971",
+      "credentials": {
+        "telegramApi": {
+          "id": "3NIbZkHiVJTZ1xJl",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Get Message').item.json.message.chat.id }}",
+        "text": "Успешно загрузили ваше видео! Ожидайте...",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        800,
+        -128
+      ],
+      "id": "76e8b743-5c97-44cc-adcc-9b018d31a193",
+      "name": "Send a GotMessage",
+      "webhookId": "a583ad1b-cfd5-4729-8e82-e190eaf49971",
+      "credentials": {
+        "telegramApi": {
+          "id": "3NIbZkHiVJTZ1xJl",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Get Message').item.json.message.chat.id }}",
+        "text": "Спасибо за использование нашего сервиса! Всего доброго <3",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1888,
+        32
+      ],
+      "id": "9e5a67b7-2f8c-4c9b-8992-4be387c76ba9",
+      "name": "Send a GoodbyeMessage",
+      "webhookId": "a583ad1b-cfd5-4729-8e82-e190eaf49971",
+      "credentials": {
+        "telegramApi": {
+          "id": "3NIbZkHiVJTZ1xJl",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "http://video-translation:8000/clear",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2112,
+        32
+      ],
+      "id": "cc304db9-66c7-4cf9-a552-ca5dadd007dc",
+      "name": "HTTP Request"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Get a file": {
+      "main": [
+        [
+          {
+            "node": "Send a GotMessage",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Make SRT",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send a ServerError",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download File": {
+      "main": [
+        [
+          {
+            "node": "Send a GotMessage",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Make SRT",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send a DownloadError",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Message": {
+      "main": [
+        [
+          {
+            "node": "Send a HelloMessage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "File or Link": {
+      "main": [
+        [
+          {
+            "node": "Get a file",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Download File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a DownloadError": {
+      "main": [
+        []
+      ]
+    },
+    "Translate": {
+      "main": [
+        [
+          {
+            "node": "Burn subtitles",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send a ServerError",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Burn subtitles": {
+      "main": [
+        [
+          {
+            "node": "Send a video",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send a ServerError",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Make SRT": {
+      "main": [
+        [
+          {
+            "node": "Translate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send a ServerError",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a video": {
+      "main": [
+        [
+          {
+            "node": "Send a GoodbyeMessage",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send a ServerError",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a HelloMessage": {
+      "main": [
+        [
+          {
+            "node": "File or Link",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a GotMessage": {
+      "main": [
+        []
+      ]
+    },
+    "Send a GoodbyeMessage": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a ServerError": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "df875ec8-93e8-4487-9c40-52ecb2f6cb6a",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "94c72787c6513a01dee1de9f89931383d8a6a5e6983624a539300a68534044b5"
+  },
+  "id": "FXlatAZa78V6fgyP",
+  "tags": []
+}
